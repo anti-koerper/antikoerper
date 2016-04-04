@@ -17,6 +17,8 @@ extern crate time;
 
 use std::fs::File;
 use std::path::PathBuf;
+use std::process;
+use std::env;
 
 use clap::{Arg, App};
 
@@ -42,6 +44,12 @@ fn main() {
                          .value_name("DIRECTORY")
                          .help("Set the output path")
                          .takes_value(true))
+                    .arg(Arg::with_name("daemonize")
+                         .short("d")
+                         .long("daemonize")
+                         .multiple(false)
+                         .takes_value(false)
+                         .help("Starts antikoerper in daemon mode"))
                     .arg(Arg::with_name("v")
                          .short("v")
                          .multiple(true)
@@ -85,6 +93,19 @@ on what should be in that file.");
         Some(s) => PathBuf::from(s),
         None => PathBuf::new(),
     };
+
+    if matches.is_present("daemonize") {
+
+        let mut child = process::Command::new(std::env::args().next().unwrap());
+        let args = env::args().skip(1).filter(|a| a != "--daemonize" && a != "-d")
+            .collect::<Vec<_>>();
+        child.args(&args).stdin(process::Stdio::null()).stdout(process::Stdio::null()).stderr(process::Stdio::null());
+        match child.spawn() {
+            Ok(_) => debug!("Successfully daemonized"),
+            Err(e) => debug!("Failed daemonizing the process {:#?}", e),
+        }
+        return;
+    }
 
     info!("Config file used: {}", &config_path.display());
 
