@@ -1,6 +1,6 @@
 
 use std::thread;
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use std::fs::{File, OpenOptions};
 use std::process::Command;
 use std::io::{Read, Write};
@@ -85,7 +85,11 @@ pub fn start(mut conf: Config) {
                 output_folder.push(clone.key);
                 match OpenOptions::new().write(true).append(true).create(true).open(&output_folder)
                     .and_then(|mut file| {
-                        file.write(&format!("{:?} {}", cur_time, &result).as_bytes()[..])
+                        let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                            Ok(dur) => dur,
+                            Err(err) => err.duration(),
+                        }.as_secs();
+                        file.write(&format!("{} {}", now, &result).as_bytes()[..])
                     })
                     {
                         Ok(_) => (),
