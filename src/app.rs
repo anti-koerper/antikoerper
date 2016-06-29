@@ -1,12 +1,11 @@
 
 use std::thread;
-use std::time::Duration;
+use std::time::Instant;
 use std::fs::{File, OpenOptions};
 use std::process::Command;
 use std::io::{Read, Write};
 
 use conf::Config;
-use time::get_time;
 use item::ItemKind;
 
 pub fn start(mut conf: Config) {
@@ -14,7 +13,7 @@ pub fn start(mut conf: Config) {
 
     loop {
         loop {
-            let cur_time = get_time().sec;
+            let cur_time = Instant::now();
             if let Some(c) = conf.items.peek() {
                 if c.next_time > cur_time {
                     break;
@@ -29,13 +28,13 @@ pub fn start(mut conf: Config) {
             item.next_time = cur_time + item.interval;
             conf.items.push(item);
 
-            let mut shell = String::new();
-
             let mut output_folder = conf.general.output.clone();
 
-            if let ItemKind::Shell(_) = clone.kind {
-                shell = conf.general.shell.clone();
-            }
+            let shell = if let ItemKind::Shell(_) = clone.kind {
+                conf.general.shell.clone()
+            } else {
+                 String::new()
+            };
 
             thread::spawn(move || {
                 let mut result = String::new();
@@ -86,7 +85,7 @@ pub fn start(mut conf: Config) {
                 output_folder.push(clone.key);
                 match OpenOptions::new().write(true).append(true).create(true).open(&output_folder)
                     .and_then(|mut file| {
-                        file.write(&format!("{} {}", cur_time, &result).as_bytes()[..])
+                        file.write(&format!("{:?} {}", cur_time, &result).as_bytes()[..])
                     })
                     {
                         Ok(_) => (),
@@ -97,7 +96,10 @@ pub fn start(mut conf: Config) {
             });
         }
         if let Some(c) = conf.items.peek() {
-            thread::sleep(Duration::from_secs((c.next_time - get_time().sec) as u64));
+            let cur_time = Instant::now();
+            if cur_time > c.next_time {
+                thread::sleep(c.next_time.duration_since(cur_time));
+            }
         }
     }
 }
