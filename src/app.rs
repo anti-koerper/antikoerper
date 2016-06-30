@@ -101,7 +101,7 @@ pub fn start(mut conf: Config) {
         }
         if let Some(c) = conf.items.peek() {
             let cur_time = Instant::now();
-            if cur_time > c.next_time {
+            if c.next_time > cur_time {
                 thread::sleep(c.next_time.duration_since(cur_time));
             }
         }
