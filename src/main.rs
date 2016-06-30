@@ -13,7 +13,6 @@ extern crate clap;
 #[macro_use] extern crate log;
 extern crate env_logger;
 extern crate xdg;
-extern crate time;
 
 use std::fs::File;
 use std::path::PathBuf;
