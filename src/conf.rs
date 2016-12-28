@@ -102,7 +102,8 @@ pub fn load(r: &mut Read, o: PathBuf) -> Result<Config, ConfigError> {
                 // If the given path is absolute, the path will be overwritten, no usage of the
                 // XDG environment variables in this case
                 // If this functions returns successfully, the path in general.output definitely exists.
-                output : match xdg::BaseDirectories::with_prefix("antikoerper").unwrap()
+                output : try!(xdg::BaseDirectories::with_prefix("antikoerper")
+                    .unwrap()
                     .create_data_directory(if o == PathBuf::new() {
                         match v.get("output") {
                             Some(&toml::Value::String(ref s)) => PathBuf::from(s.clone()),
@@ -117,17 +118,14 @@ pub fn load(r: &mut Read, o: PathBuf) -> Result<Config, ConfigError> {
                          // using the one provided with commandline argument
                          o
                     },)
-                    {
-                        Ok(s) => s,
-                        Err(e) => {
-                            println!("Error while checking/creating path");
-                            println!("Error: {}", e);
-                            return Err(ConfigError {
-                                kind: ConfigErrorKind::IoError,
-                                cause: None,
-                            });
+                    .map_err(|e| {
+                        println!("Error while checking/creating path");
+                        println!("Error: {}", e);
+                        ConfigError {
+                            kind: ConfigErrorKind::IoError,
+                            cause: None,
                         }
-                    }
+                    })),
             }
         },
 
