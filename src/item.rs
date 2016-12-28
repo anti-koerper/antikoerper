@@ -142,12 +142,10 @@ impl Item {
 
         let path = table.get("file")
             .ok_or_else(|| ItemError::new(key.clone(), ItemErrorKind::MissingValueSection))
-            .and_then(|v| {
-                if let toml::Value::String(ref s) = *v {
-                    Ok(ItemKind::File(PathBuf::from(s)))
-                } else {
-                    Err(ItemError::new(key.clone(), ItemErrorKind::InvalidPathType))
-                }
+            .and_then(|v| if let toml::Value::String(ref s) = *v {
+                Ok(ItemKind::File(PathBuf::from(s)))
+            } else {
+                Err(ItemError::new(key.clone(), ItemErrorKind::InvalidPathType))
             });
 
         let env = match table.get("env") {
