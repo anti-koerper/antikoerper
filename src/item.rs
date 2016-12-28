@@ -149,15 +149,13 @@ impl Item {
             });
 
         let env = match table.get("env") {
-            Some(&toml::Value::Table(ref x)) => {
-                x.iter().map(|(k, v)| (k.clone(), v.as_str()))
-                    .filter(|&(_, v)| v.is_some())
-                    .map(|(k,v)| (k, v.unwrap().into()))
-                    .collect::<BTreeMap<String, String>>()
-            }
-            _ => {
-                BTreeMap::new()
-            }
+            Some(&toml::Value::Table(ref x)) => x.iter()
+                .map(|(k, v)| (k.clone(), v.as_str()))
+                .filter(|&(_, v)| v.is_some())
+                .map(|(k,v)| (k, v.unwrap().into()))
+                .collect::<BTreeMap<String, String>>(),
+
+            _ => BTreeMap::new()
         };
 
         debug!("Got this env: {:#?}", env);
