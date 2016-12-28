@@ -23,7 +23,6 @@ pub fn start(mut conf: Config) {
                 break;
             }
 
-
             let mut item = conf.items.pop().unwrap();
             let clone = item.clone();
             item.next_time = cur_time + item.interval;
@@ -41,14 +40,13 @@ pub fn start(mut conf: Config) {
                 let mut result = String::new();
                 match clone.kind {
                     ItemKind::File(ref path) => {
-                        let mut f = match File::open(path) {
-                            Ok(f) => f,
-                            Err(e) => return error!("Could not open file: {}\n{}", path.display(), e),
-                        };
-                        match f.read_to_string(&mut result) {
-                            Ok(_) => (),
-                            Err(e) => return error!("Could read output from file: {},\n{}", path.display(), e),
-                        }
+                        let mut file = try!(File::open(path)
+                            .map_err(|e| error!("Could not open file: {}\n{}", path.display(), e)));
+
+                        try!(file
+                            .read_to_string(&mut result)
+                            .map(|_| ())
+                            .map_err(|e| error!("Could read output from file: {},\n{}", path.display(), e)));
                     }
                     ItemKind::Command(ref path, ref args) => {
                         let mut output = Command::new(path);
@@ -56,14 +54,10 @@ pub fn start(mut conf: Config) {
                         for (k,v) in clone.env {
                             output.env(k, v);
                         }
-                        let output = match output.output() {
-                            Ok(f) => f,
-                            Err(e) => return error!("Could not run command: {}\n{}", path.display(), e)
-                        };
-                        result = match String::from_utf8(output.stdout) {
-                            Ok(r) => r,
-                            Err(e) => return error!("Could not read output from command: {}\n{}", path.display(), e)
-                        }
+                        let output = try!(output.output()
+                            .map_err(|e| error!("Could not run command: {}\n{}", path.display(), e)));
+
+                        result = try!(String::from_utf8(output.stdout).map_err(|e| error!("Could not read output from command: {}\n{}", path.display(), e)));
                     }
                     ItemKind::Shell(ref command) => {
                         let mut output = Command::new(shell);
@@ -72,28 +66,24 @@ pub fn start(mut conf: Config) {
                         for (k,v) in clone.env {
                             output.env(k, v);
                         }
-                        let output = match output.output() {
-                            Ok(f) => f,
-                            Err(e) => return error!("Could not run shell command: {}\n{}", command, e)
-                        };
-                        result = match String::from_utf8(output.stdout) {
-                            Ok(r) => r,
-                            Err(e) => return error!("Could not read output from shell command: {}\n{}", command, e)
-                        }
+
+                        let output = try!(output.output()
+                            .map_err(|e| error!("Could not run shell command: {}\n{}", command, e)));
+
+                        result = try!(String::from_utf8(output.stdout)
+                            .map_err(|e| error!("Could not read output from shell command: {}\n{}", command, e)));
                     }
                 }
                 debug!("{}={}", clone.key, result);
                 output_folder.push(clone.key);
-                match OpenOptions::new().write(true).append(true).create(true).open(&output_folder)
-                    .and_then(|mut file| {
-                        file.write(&format!("{} {}", cur_time, &result).as_bytes()[..])
-                    })
-                    {
-                        Ok(_) => (),
-                        Err(e) => {
-                            error!("Error creating file {}, {}", output_folder.display(), e)
-                        }
-                    }
+                OpenOptions::new()
+                    .write(true)
+                    .append(true)
+                    .create(true)
+                    .open(&output_folder)
+                    .and_then(|mut f| f.write(&format!("{} {}", cur_time, &result).as_bytes()[..]))
+                    .map(|_| ())
+                    .map_err(|e| error!("Error creating file {}, {}", output_folder.display(), e))
             });
         }
         if let Some(c) = conf.items.peek() {
