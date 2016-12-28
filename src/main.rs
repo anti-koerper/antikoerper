@@ -88,10 +88,7 @@ on what should be in that file.");
     };
 
     trace!("Matching for output value");
-    let data_path = match matches.value_of("output") {
-        Some(s) => PathBuf::from(s),
-        None => PathBuf::new(),
-    };
+    let data_path = matches.value_of("output").map(PathBuf::from).unwrap_or(PathBuf::new());
 
     if matches.is_present("daemonize") {
 
