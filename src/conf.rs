@@ -143,12 +143,10 @@ pub fn load(r: &mut Read, o: PathBuf) -> Result<Config, ConfigError> {
             kind: ConfigErrorKind::MissingItems,
             cause: None
         })
-    }.iter().filter_map(|v| {
-        if let toml::Value::Table(ref v) = *v {
-            Some(Item::from_toml(v))
-        } else {
-            None
-        }
+    }.iter().filter_map(|v| if let toml::Value::Table(ref v) = *v {
+        Some(Item::from_toml(v))
+    } else {
+        None
     }).collect::<Vec<_>>();
 
     for err in items.iter().filter(|x| x.is_err()) {
