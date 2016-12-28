@@ -134,12 +134,10 @@ impl Item {
 
         let shell = table.get("shell")
             .ok_or_else(|| ItemError::new(key.clone(), ItemErrorKind::MissingValueSection))
-            .and_then(|v| {
-                if let toml::Value::String(ref s) = *v {
-                    Ok(ItemKind::Shell(s.clone()))
-                } else {
-                    Err(ItemError::new(key.clone(), ItemErrorKind::InvalidShellType))
-                }
+            .and_then(|v| if let toml::Value::String(ref s) = *v {
+                Ok(ItemKind::Shell(s.clone()))
+            } else {
+                Err(ItemError::new(key.clone(), ItemErrorKind::InvalidShellType))
             });
 
         let path = table.get("file")
