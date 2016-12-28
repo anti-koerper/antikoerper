@@ -129,11 +129,9 @@ pub fn load(r: &mut Read, o: PathBuf) -> Result<Config, ConfigError> {
             }
         },
 
-        _ => {
-            General {
-                shell: String::from("/usr/bin/sh"),
-                output: o,
-            }
+        _ => General {
+            shell: String::from("/usr/bin/sh"),
+            output: o,
         }
     };
 
