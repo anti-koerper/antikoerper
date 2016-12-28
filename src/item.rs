@@ -175,19 +175,15 @@ impl Item {
         let kind = try!(sources.into_iter().filter(|x| x.is_ok()).next().unwrap());
 
         let time = match table.get("interval") {
-            Some(&toml::Value::Integer(x)) if x <= 0 => {
-                return Err(ItemError {
-                    key: key.clone(),
-                    kind: ItemErrorKind::InvalidInterval,
-                });
-            },
+            Some(&toml::Value::Integer(x)) if x <= 0 => return Err(ItemError {
+                key: key.clone(),
+                kind: ItemErrorKind::InvalidInterval,
+            }),
             Some(&toml::Value::Integer(x)) => x,
-            _ => {
-                return Err(ItemError {
-                    key: key.clone(),
-                    kind: ItemErrorKind::MissingIntervalSection,
-                });
-            }
+            _ => return Err(ItemError {
+                key: key.clone(),
+                kind: ItemErrorKind::MissingIntervalSection,
+            })
         };
 
         Ok(Item {
