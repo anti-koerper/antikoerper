@@ -69,11 +69,10 @@ fn main() {
     env_logger::LogBuilder::new().filter(None, level).init().unwrap();
 
     trace!("Matching for config value");
-    let config_path = matches.value_of("config").and_then(|s| {
-        Some(PathBuf::from(s))
-    }).or_else(|| {
-        xdg_dirs.find_config_file("config.toml")
-    });
+    let config_path = matches.value_of("config")
+        .map(PathBuf::from)
+        .or_else(|| xdg_dirs.find_config_file("config.toml"));
+
     trace!("Value is: {:#?}", config_path);
 
     let config_path = match config_path {
