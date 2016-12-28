@@ -101,12 +101,10 @@ impl Item {
                     if let (Some(&toml::Value::String(ref s)), Some(&toml::Value::Array(ref a)))
                                                                  = (v.get("path"), v.get("args")) {
                         path = PathBuf::from(&s);
-                        args = {
-                            if a.iter().map(|x| x.as_str()).all(|x| x.is_some()) {
-                                a.iter().map(|x| x.as_str()).map(|x| x.unwrap().into()).collect()
-                            } else {
-                                return Err(ItemError::new(key.clone(), ItemErrorKind::ValueArrayInvalid));
-                            }
+                        args = if a.iter().map(|x| x.as_str()).all(|x| x.is_some()) {
+                            a.iter().map(|x| x.as_str()).map(|x| x.unwrap().into()).collect()
+                        } else {
+                            return Err(ItemError::new(key.clone(), ItemErrorKind::ValueArrayInvalid));
                         };
 
                         Ok(ItemKind::Command(path, args))
