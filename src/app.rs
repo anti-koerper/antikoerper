@@ -5,9 +5,12 @@ use std::fs::{File, OpenOptions};
 use std::process::Command;
 use std::io::{Read, Write};
 
+use regex::Regex;
+
 use conf::Config;
 use time::get_time;
 use item::ItemKind;
+use item::Mapper;
 
 pub fn start(mut conf: Config) {
     // We would deamonize here if necessary
@@ -53,7 +56,7 @@ pub fn start(mut conf: Config) {
                     ItemKind::Command(ref path, ref args) => {
                         let mut output = Command::new(path);
                         output.args(args);
-                        for (k,v) in clone.env {
+                        for (k,v) in clone.env.iter() {
                             output.env(k, v);
                         }
                         let output = match output.output() {
@@ -69,7 +72,7 @@ pub fn start(mut conf: Config) {
                         let mut output = Command::new(shell);
                         output.arg("-c");
                         output.arg(command);
-                        for (k,v) in clone.env {
+                        for (k,v) in clone.env.iter() {
                             output.env(k, v);
                         }
                         let output = match output.output() {
@@ -82,18 +85,45 @@ pub fn start(mut conf: Config) {
                         }
                     }
                 }
-                debug!("{}={}", clone.key, result);
-                output_folder.push(clone.key);
-                match OpenOptions::new().write(true).append(true).create(true).open(&output_folder)
-                    .and_then(|mut file| {
+
+            debug!("{}={}", clone.key, result);
+            output_folder.push(&clone.key);
+            match OpenOptions::new().write(true).append(true).create(true).open(&output_folder)
+                .and_then(|mut file| {
+                    if clone.mappers.is_empty() {
                         file.write(&format!("{} {}", cur_time, &result).as_bytes()[..])
-                    })
-                    {
-                        Ok(_) => (),
-                        Err(e) => {
-                            error!("Error creating file {}, {}", output_folder.display(), e)
+                    } else {
+                        for (i, regex) in clone.mappers
+                            .iter()
+                            .map(|mapper| match mapper {
+                                Mapper::Regex { regex } => regex,
+                            })
+                            .map(|s| Regex::new(s).expect("Parsing regex failed"))
+                            .enumerate()
+                        {
+                            for (j, mtch) in regex
+                                .find_iter(&result)
+                                .enumerate()
+                            {
+                                let out = format!("{time} {mapper}.{nmatch} {text}",
+                                                  time = cur_time,
+                                                  mapper = i,
+                                                  nmatch = j,
+                                                  text = mtch.as_str());
+                                file.write(out.as_bytes())?;
+                            }
                         }
+
+                        Ok(Default::default())
                     }
+                })
+                {
+                    Ok(_) => (),
+                    Err(e) => {
+                        error!("Error creating file {}, {}", output_folder.display(), e)
+                    }
+                }
+
             });
         }
         if let Some(c) = conf.items.iter().peekable().peek() {
