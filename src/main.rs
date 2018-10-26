@@ -17,6 +17,7 @@ extern crate xdg;
 extern crate time;
 extern crate itertools;
 extern crate regex;
+extern crate serde_regex;
 
 use std::fs::File;
 use std::path::PathBuf;

@@ -5,8 +5,6 @@ use std::fs::{File, OpenOptions};
 use std::process::Command;
 use std::io::{Read, Write};
 
-use regex::Regex;
-
 use conf::Config;
 use time::get_time;
 use item::ItemKind;
@@ -98,7 +96,6 @@ pub fn start(mut conf: Config) {
                             .map(|mapper| match mapper {
                                 Mapper::Regex { regex } => regex,
                             })
-                            .map(|s| Regex::new(s).expect("Parsing regex failed"))
                             .enumerate()
                         {
                             for (j, mtch) in regex

@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::error::Error;
 use std::collections::BTreeMap;
 
+use serde_regex;
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ItemErrorKind {
     InvalidInterval,
@@ -69,13 +71,15 @@ pub struct Item {
     #[serde(rename = "command")]
     pub kind: ItemKind,
 
+    #[serde(default = "Vec::new")]
     pub mappers: Vec<Mapper>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum Mapper {
     Regex {
-        regex: String, // `regex::Regex` does not yet support Deserialize unfortunately
+        #[serde(with = "serde_regex")]
+        regex: ::regex::Regex,
     },
     // Maybe later more?
 }
