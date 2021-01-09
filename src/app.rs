@@ -156,7 +156,7 @@ async fn item_worker(item: Item, shell: String, outputs: Vec<OutputKind>) {
 /// its stdout as a String
 fn run_cmd_capture_output(
     cmd: &PathBuf,
-    args: &Vec<String>,
+    args: &[String],
     env: &BTreeMap<String, String>,
 ) -> Result<String, ()> {
     let mut command = Command::new(cmd);

@@ -42,13 +42,13 @@ impl Default for FileOutput {
 }
 
 impl AKOutput for FileOutput {
-    fn prepare(&self, _items: &Vec<Item>) -> Result<Self, OutputError> {
+    fn prepare(&self, _items: &[Item]) -> Result<Self, OutputError> {
         // TODO: crate base_path if necessary
         // TODO: check if base_path is writable
         Ok(self.clone())
     }
 
-    fn write_value(&self, key: &String, time: Duration, value: f64) -> Result<(), OutputError> {
+    fn write_value(&self, key: &str, time: Duration, value: f64) -> Result<(), OutputError> {
         let mut path = self.base_path.clone();
         path.push(key);
         match OpenOptions::new()
@@ -69,7 +69,7 @@ impl AKOutput for FileOutput {
 
     fn write_raw_value_as_fallback(
         &self,
-        key: &String,
+        key: &str,
         time: Duration,
         value: &str,
     ) -> Result<(), OutputError> {
@@ -93,7 +93,7 @@ impl AKOutput for FileOutput {
 
     fn write_raw_value(
         &self,
-        key: &String,
+        key: &str,
         time: Duration,
         value: &str,
     ) -> Result<(), OutputError> {

@@ -58,7 +58,7 @@ impl PartialEq for InfluxOutput {
 impl Eq for InfluxOutput {}
 
 impl AKOutput for InfluxOutput {
-    fn prepare(&self, _items: &Vec<Item>) -> Result<Self, OutputError> {
+    fn prepare(&self, _items: &[Item]) -> Result<Self, OutputError> {
         trace!("running prepare for InfluxOutput");
         if let Some(auth) = &self.auth {
             Ok(Self {
@@ -90,10 +90,10 @@ impl AKOutput for InfluxOutput {
         }
     }
 
-    fn write_value(&self, key: &String, time: Duration, value: f64) -> Result<(), OutputError> {
+    fn write_value(&self, key: &str, time: Duration, value: f64) -> Result<(), OutputError> {
         if let Some(client) = &self.client {
             let c = client.clone();
-            let lkey = key.clone();
+            let lkey = String::from(key);
             tokio::spawn(async move {
                 if let Err(e) = c
                     .query(
@@ -121,14 +121,14 @@ impl AKOutput for InfluxOutput {
 
     fn write_raw_value_as_fallback(
         &self,
-        key: &String,
+        key: &str,
         time: Duration,
         value: &str,
     ) -> Result<(), OutputError> {
         if self.use_raw_as_fallback {
             if let Some(client) = &self.client {
                 let c = client.clone();
-                let lkey = key.clone();
+                let lkey = String::from(key);
                 let lval = String::from(value);
                 tokio::spawn(async move {
                     if let Err(e) = c
@@ -160,14 +160,14 @@ impl AKOutput for InfluxOutput {
 
     fn write_raw_value(
         &self,
-        key: &String,
+        key: &str,
         time: Duration,
         value: &str,
     ) -> Result<(), OutputError> {
         if self.always_write_raw {
             if let Some(client) = &self.client {
                 let c = client.clone();
-                let lkey = key.clone();
+                let lkey = String::from(key);
                 let lval = String::from(value);
                 tokio::spawn(async move {
                     if let Err(e) = c

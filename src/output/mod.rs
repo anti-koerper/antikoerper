@@ -1,6 +1,5 @@
 extern crate xdg;
 
-use std::string::String;
 use std::time::Duration;
 
 use crate::item::Item;
@@ -13,15 +12,15 @@ pub mod error;
 use self::error::*;
 
 pub trait AKOutput {
-    fn prepare(&self, items: &Vec<Item>) -> Result<Self, OutputError>
+    fn prepare(&self, items: &[Item]) -> Result<Self, OutputError>
     where
         Self: std::marker::Sized;
-    fn write_value(&self, key: &String, time: Duration, value: f64) -> Result<(), OutputError>;
-    fn write_raw_value(&self, key: &String, time: Duration, value: &str)
+    fn write_value(&self, key: &str, time: Duration, value: f64) -> Result<(), OutputError>;
+    fn write_raw_value(&self, key: &str, time: Duration, value: &str)
         -> Result<(), OutputError>;
     fn write_raw_value_as_fallback(
         &self,
-        key: &String,
+        key: &str,
         time: Duration,
         value: &str,
     ) -> Result<(), OutputError>;
@@ -43,7 +42,7 @@ pub enum OutputKind {
 }
 
 impl AKOutput for OutputKind {
-    fn prepare(&self, items: &Vec<Item>) -> Result<Self, OutputError> {
+    fn prepare(&self, items: &[Item]) -> Result<Self, OutputError> {
         match self {
             OutputKind::File { fo } => fo.prepare(items).map(|o| OutputKind::File { fo: o }),
             OutputKind::InfluxDB { io } => {
@@ -52,7 +51,7 @@ impl AKOutput for OutputKind {
         }
     }
 
-    fn write_value(&self, key: &String, time: Duration, value: f64) -> Result<(), OutputError> {
+    fn write_value(&self, key: &str, time: Duration, value: f64) -> Result<(), OutputError> {
         match self {
             OutputKind::File { fo } => fo.write_value(key, time, value),
             OutputKind::InfluxDB { io } => io.write_value(key, time, value),
@@ -61,7 +60,7 @@ impl AKOutput for OutputKind {
 
     fn write_raw_value_as_fallback(
         &self,
-        key: &String,
+        key: &str,
         time: Duration,
         value: &str,
     ) -> Result<(), OutputError> {
@@ -73,7 +72,7 @@ impl AKOutput for OutputKind {
 
     fn write_raw_value(
         &self,
-        key: &String,
+        key: &str,
         time: Duration,
         value: &str,
     ) -> Result<(), OutputError> {
