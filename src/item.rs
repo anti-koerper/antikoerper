@@ -2,8 +2,6 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::path::PathBuf;
 
-use serde_regex;
-
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ItemErrorKind {
     InvalidInterval,
@@ -27,7 +25,7 @@ impl ItemError {
 
 impl ItemError {
     pub fn new(key: String, k: ItemErrorKind) -> ItemError {
-        ItemError { key: key, kind: k }
+        ItemError { key, kind: k }
     }
 }
 
@@ -75,6 +73,7 @@ pub struct Item {
     pub digest: DigestKind,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum DigestKind {
@@ -96,8 +95,6 @@ impl Default for DigestKind {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
-
-    use toml;
 
     use crate::item::{Item, ItemKind};
 
