@@ -79,7 +79,7 @@ fn main() {
         0 => log::LogLevelFilter::Off,
         1 => log::LogLevelFilter::Warn,
         2 => log::LogLevelFilter::Debug,
-        3 | _ => log::LogLevelFilter::Trace,
+        _ => log::LogLevelFilter::Trace,
     };
 
     env_logger::LogBuilder::new()
@@ -90,7 +90,7 @@ fn main() {
     trace!("Matching for config value");
     let config_path = matches
         .value_of("config")
-        .and_then(|s| Some(PathBuf::from(s)))
+        .map(PathBuf::from)
         .or_else(|| xdg_dirs.find_config_file("config.toml"));
     trace!("Value is: {:#?}", config_path);
 
@@ -99,7 +99,7 @@ fn main() {
         None => {
             println!("Could not find config file, make sure to give one with the --config option.");
             println!("The default is XDG_CONFIG_HOME/antikoerper/config.toml");
-            println!("");
+            println!();
             println!(
                 "Check out https://github.com/anti-koerper/antikoerper for details
 on what should be in that file."

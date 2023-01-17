@@ -21,7 +21,7 @@ pub struct FileOutput {
 fn file_base_path_default() -> PathBuf {
     xdg::BaseDirectories::with_prefix("antikoerper")
         .unwrap()
-        .create_data_directory(&PathBuf::new())
+        .create_data_directory(PathBuf::new())
         .unwrap_or_else(|e| {
             println!("Error: {}", e);
             ::std::process::exit(1)
@@ -56,9 +56,8 @@ impl AKOutput for FileOutput {
             .append(true)
             .create(true)
             .open(&path)
-            .and_then(|mut file| {
-                file.write(&format!("{} {}\n", time.as_secs(), value).as_bytes()[..])
-            }) {
+            .and_then(|mut file| file.write(format!("{} {}\n", time.as_secs(), value).as_bytes()))
+        {
             Ok(_) => Ok(()),
             Err(e) => Err(OutputError {
                 kind: OutputErrorKind::WriteError(String::from("FileOutput")),
@@ -81,7 +80,7 @@ impl AKOutput for FileOutput {
             .create(true)
             .open(path)
             .and_then(|mut file| {
-                file.write(&format!("{} {}\n", time.as_secs(), value.trim()).as_bytes()[..])
+                file.write(format!("{} {}\n", time.as_secs(), value.trim()).as_bytes())
             }) {
             Ok(_) => Ok(()),
             Err(e) => Err(OutputError {
@@ -91,12 +90,7 @@ impl AKOutput for FileOutput {
         }
     }
 
-    fn write_raw_value(
-        &self,
-        key: &str,
-        time: Duration,
-        value: &str,
-    ) -> Result<(), OutputError> {
+    fn write_raw_value(&self, key: &str, time: Duration, value: &str) -> Result<(), OutputError> {
         if self.always_write_raw {
             self.write_raw_value_as_fallback(key, time, value)
         } else {

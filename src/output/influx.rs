@@ -67,12 +67,10 @@ impl AKOutput for InfluxOutput {
                 auth: self.auth.clone(),
                 use_raw_as_fallback: self.use_raw_as_fallback,
                 always_write_raw: self.always_write_raw,
-                client: Some(
-                    Arc::new(
-                        Client::new(self.url.clone(), self.database.clone())
-                            .with_auth(auth.username.clone(), auth.password.clone()),
-                    )
-                ),
+                client: Some(Arc::new(
+                    Client::new(self.url.clone(), self.database.clone())
+                        .with_auth(auth.username.clone(), auth.password.clone()),
+                )),
             })
         } else {
             Ok(Self {
@@ -81,11 +79,10 @@ impl AKOutput for InfluxOutput {
                 auth: self.auth.clone(),
                 use_raw_as_fallback: self.use_raw_as_fallback,
                 always_write_raw: self.always_write_raw,
-                client: Some(
-                    Arc::new(
-                        Client::new(self.url.clone(), self.database.clone())
-                    )
-                ),
+                client: Some(Arc::new(Client::new(
+                    self.url.clone(),
+                    self.database.clone(),
+                ))),
             })
         }
     }
@@ -97,7 +94,7 @@ impl AKOutput for InfluxOutput {
             tokio::spawn(async move {
                 if let Err(e) = c
                     .query(
-                        &Query::write_query(
+                        &<dyn Query>::write_query(
                             Timestamp::Milliseconds(time.as_millis() as usize),
                             lkey,
                         )
@@ -133,7 +130,7 @@ impl AKOutput for InfluxOutput {
                 tokio::spawn(async move {
                     if let Err(e) = c
                         .query(
-                            &Query::write_query(
+                            &<dyn Query>::write_query(
                                 Timestamp::Milliseconds(time.as_millis() as usize),
                                 lkey,
                             )
@@ -158,12 +155,7 @@ impl AKOutput for InfluxOutput {
         }
     }
 
-    fn write_raw_value(
-        &self,
-        key: &str,
-        time: Duration,
-        value: &str,
-    ) -> Result<(), OutputError> {
+    fn write_raw_value(&self, key: &str, time: Duration, value: &str) -> Result<(), OutputError> {
         if self.always_write_raw {
             if let Some(client) = &self.client {
                 let c = client.clone();
@@ -172,7 +164,7 @@ impl AKOutput for InfluxOutput {
                 tokio::spawn(async move {
                     if let Err(e) = c
                         .query(
-                            &Query::write_query(
+                            &<dyn Query>::write_query(
                                 Timestamp::Milliseconds(time.as_millis() as usize),
                                 lkey,
                             )

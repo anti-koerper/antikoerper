@@ -229,7 +229,7 @@ mod tests {
         let mut config = conf::load(&mut data.as_bytes()).unwrap();
         let xdg_default_dir = match xdg::BaseDirectories::with_prefix("antikoerper")
             .unwrap()
-            .create_data_directory(&PathBuf::new())
+            .create_data_directory(PathBuf::new())
         {
             Ok(s) => s,
             Err(e) => {
@@ -245,8 +245,7 @@ mod tests {
             ),
             _ => {
                 println!("Error: wrong OutputKind");
-                return;
             }
-        };
+        }
     }
 }

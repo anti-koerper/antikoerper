@@ -16,8 +16,7 @@ pub trait AKOutput {
     where
         Self: std::marker::Sized;
     fn write_value(&self, key: &str, time: Duration, value: f64) -> Result<(), OutputError>;
-    fn write_raw_value(&self, key: &str, time: Duration, value: &str)
-        -> Result<(), OutputError>;
+    fn write_raw_value(&self, key: &str, time: Duration, value: &str) -> Result<(), OutputError>;
     fn write_raw_value_as_fallback(
         &self,
         key: &str,
@@ -70,12 +69,7 @@ impl AKOutput for OutputKind {
         }
     }
 
-    fn write_raw_value(
-        &self,
-        key: &str,
-        time: Duration,
-        value: &str,
-    ) -> Result<(), OutputError> {
+    fn write_raw_value(&self, key: &str, time: Duration, value: &str) -> Result<(), OutputError> {
         match self {
             OutputKind::File { fo } => fo.write_raw_value(key, time, value),
             OutputKind::InfluxDB { io } => io.write_raw_value(key, time, value),
