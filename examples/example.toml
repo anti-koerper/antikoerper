@@ -1,0 +1,52 @@
+[general]
+shell = "/bin/sh"
+
+[[output]]
+type = "file"
+# may be useful for debugging
+always_write_raw = true
+base_path = "/tmp/antikoerper"
+
+[[output]]
+type = "influxdb"
+url = "http://localhost:8086"
+
+[[items]]
+key = "workstation.os.load"
+interval = 10
+input.type = "file"
+input.path = "/proc/loadavg"
+digest.type = "regex"
+digest.regex = '(?P<load1m>\d+\.\d\d)\s(?P<load5m>\d+\.\d\d)\s(?P<load15m>\d+\.\d\d)'
+
+[[items]]
+key = "workstation.os.disk"
+interval = 900
+input.type = "command"
+input.path = "check_disk"
+input.args = ["-w", "20%", "-c", "10%", "-W", "30%", "-K", "20%", "-N", "zfs", "-N", "ext4", "-N", "vfat", "-P"]
+digest.type = "monitoring-plugin"
+
+[[items]]
+key = "workstation.os.memory"
+interval = 60
+env = { LANG = "C" }
+input.type = "shell"
+input.script = "free | grep 'Mem:'"
+digest.type = "regex"
+digest.regex = '.*\s+(?P<total>\d+)\s+(?P<used>\d+)\s+(?P<free>\d+)\s+(?P<shared>\d+)\s+(?P<cache>\d+)\s+(?P<avail>\d+)"'
+
+[[items]]
+key = "workstation.os.procs"
+interval = 30
+input.type = "command"
+input.path = "check_procs"
+digest.type = "monitoring-plugin"
+
+[[items]]
+key = "workstation.os.procs.memhog"
+interval = 30
+input.type = "command"
+input.path = "check_procs"
+input.args = ["-m", "RSS", "-w", "1500000", "-c", "2000000"]
+digest.type = "monitoring-plugin"

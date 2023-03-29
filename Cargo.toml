@@ -1,28 +1,27 @@
 [package]
-authors = ["Marcel Müller <neikos@neikos.email>"]
+authors = [
+  "Marcel Müller <neikos@neikos.email>",
+  "Mario Krehl <mario-krehl@gmx.de>"
+]
 name = "antikoerper"
 version = "0.2.0"
 license = "GPL-3.0"
-edition = "2018"
+edition = "2021"
 homepage = "https://github.com/anti-koerper/antikoerper"
 keywords = ["monitoring", "lightweight", "fast"]
 description = "A lightweight and simple to use local monitoring application"
 
 [dependencies]
-clap = "2"
-env_logger = "0.3"
-log = "0.3"
-time = "0.1"
-xdg = "2"
-serde        = "1"
-serde_derive = "1"
-serde_regex  = "0.3"
-toml         = "0.4"
-itertools    = "0.7"
+async-trait = "0.1"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+env_logger = "0.10"
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_regex  = "1"
+toml         = "0.7"
+itertools    = "0.10"
 regex        = "1"
-futures      = "0.3"
-influxdb     = "0.0.6"
+influxdb     = "0.6"
 
-[dependencies.tokio]
-version = "0.2"
-features = [ "full" ]

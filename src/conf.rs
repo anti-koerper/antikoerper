@@ -1,81 +1,25 @@
-extern crate xdg;
+//! Configuration parsing
 
-use itertools::Itertools;
 use std::io::Read;
+use std::path::PathBuf;
 
-use crate::item::{Item, ItemError, ItemErrorKind};
-use crate::output::{file::FileOutput, OutputKind};
+use anyhow::{bail, Result};
+use itertools::Itertools;
+use log::debug;
+use serde::Deserialize;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-enum ConfigErrorKind {
-    IoError,
-    TomlError,
-    ErrorItems,
-    DuplicateItem(String),
-    Utf8Error,
-}
+use crate::item::Item;
 
-#[derive(Debug)]
-pub struct ConfigError {
-    kind: ConfigErrorKind,
-    cause: Option<Box<dyn (::std::error::Error)>>,
-}
-
-impl ::std::fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        match self.kind {
-            ConfigErrorKind::IoError | ConfigErrorKind::TomlError => {
-                self.cause.as_ref().unwrap().fmt(f)
-            }
-            ConfigErrorKind::ErrorItems => write!(f, "some items have errors"),
-            ConfigErrorKind::DuplicateItem(ref s) => write!(f, "duplicate key: {}", s),
-            ConfigErrorKind::Utf8Error => write!(f, "utf8 error"),
-        }
-    }
-}
-
-impl From<::std::io::Error> for ConfigError {
-    fn from(e: ::std::io::Error) -> Self {
-        ConfigError {
-            kind: ConfigErrorKind::IoError,
-            cause: Some(Box::new(e)),
-        }
-    }
-}
-
-impl From<::toml::de::Error> for ConfigError {
-    fn from(e: ::toml::de::Error) -> Self {
-        ConfigError {
-            kind: ConfigErrorKind::TomlError,
-            cause: Some(Box::new(e)),
-        }
-    }
-}
-
-impl From<::std::string::FromUtf8Error> for ConfigError {
-    fn from(e: ::std::string::FromUtf8Error) -> Self {
-        ConfigError {
-            kind: ConfigErrorKind::Utf8Error,
-            cause: Some(Box::new(e)),
-        }
-    }
-}
-
-impl From<ItemError> for ConfigError {
-    fn from(e: ItemError) -> Self {
-        ConfigError {
-            kind: ConfigErrorKind::ErrorItems,
-            cause: Some(Box::new(e)),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Config {
     pub general: General,
-    #[serde(default = "output_default")]
+    #[serde(default = "default_output")]
     pub output: Vec<OutputKind>,
     pub items: Vec<Item>,
+}
+
+fn default_output() -> Vec<OutputKind> {
+    vec![OutputKind::default()]
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -85,66 +29,92 @@ pub struct General {
 }
 
 fn shell_default() -> String {
-    String::from("/usr/bin/sh")
+    String::from("/bin/sh")
 }
 
-fn output_default() -> Vec<OutputKind> {
-    vec![OutputKind::File {
-        fo: FileOutput::default(),
-    }]
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum OutputKind {
+    File {
+        base_path: PathBuf,
+        #[serde(default)]
+        always_write_raw: bool,
+    },
+    InfluxDB {
+        #[serde(default = "influx_url_default")]
+        url: String,
+        #[serde(default = "influx_database_default")]
+        database: String,
+        #[serde(flatten)]
+        auth: Option<InfluxDBAuth>,
+        #[serde(default)]
+        use_raw_as_fallback: bool,
+        #[serde(default)]
+        always_write_raw: bool,
+    }, // more in the future?
 }
 
-pub fn load(r: &mut dyn Read) -> Result<Config, ConfigError> {
+#[derive(Debug, Deserialize)]
+pub struct InfluxDBAuth {
+    pub username: String,
+    pub password: String,
+}
+
+fn influx_url_default() -> String {
+    String::from("http://localhost:8086")
+}
+
+fn influx_database_default() -> String {
+    String::from("antikoerper")
+}
+
+impl Default for OutputKind {
+    fn default() -> Self {
+        Self::File {
+            base_path: PathBuf::from("/var/log/antikoerper/"),
+            always_write_raw: false,
+        }
+    }
+}
+
+pub fn load(r: &mut dyn Read) -> Result<Config> {
     let content = {
         let mut buffer = String::new();
         r.read_to_string(&mut buffer)?;
         buffer
     };
 
-    let data: Config = ::toml::de::from_str(&content).map_err(ConfigError::from)?;
+    let data: Config = ::toml::de::from_str(&content)?;
 
     debug!("{:#?}", data);
 
-    if let Some(err) = data
+    let duplicates = data
         .items
         .iter()
         .map(|x| x.key.clone())
         .sorted()
-        .windows(2)
-        .filter_map(|x| {
-            if x[0] == x[1] {
-                Some(x[0].clone())
-            } else {
-                None
-            }
-        })
-        .next()
-        .map(|n| {
-            Err(ConfigError {
-                kind: ConfigErrorKind::DuplicateItem(n),
-                cause: None,
-            })
-        })
-    {
-        return err;
+        .tuple_windows::<(_, _)>()
+        .filter_map(|x| if x.0 == x.1 { Some(x.0.clone()) } else { None })
+        .collect::<Vec<_>>();
+    if duplicates.len() > 0 {
+        bail!(
+            "Configuration contained duplicate keys {}!",
+            duplicates.join(", ")
+        )
     }
 
-    if let Some(err) = data
+    let interval_too_small = data
         .items
         .iter()
-        .filter_map(|i| {
-            if i.interval == 0 {
-                Some(Err(ItemError::new(
-                    i.key.clone(),
-                    ItemErrorKind::InvalidInterval,
-                )))
-            } else {
-                None
-            }
-        })
-        .next()
-    {
-        return err.map_err(ConfigError::from);
+        .filter(|item| item.interval == 0)
+        .map(|item| item.key.clone())
+        .collect::<Vec<_>>();
+
+    if interval_too_small.len() > 0 {
+        bail!(
+            "Interval of following items was not bigger than 0: {}",
+            interval_too_small.join(", ")
+        )
     }
 
     Ok(data)
@@ -152,12 +122,8 @@ pub fn load(r: &mut dyn Read) -> Result<Config, ConfigError> {
 
 #[cfg(test)]
 mod tests {
-    extern crate xdg;
-
-    use std::path::PathBuf;
-
     use crate::conf;
-    use crate::output::OutputKind;
+    use std::path::PathBuf;
 
     #[test]
     fn load() {
@@ -205,15 +171,6 @@ mod tests {
 
         let config = conf::load(&mut data.as_bytes());
         assert!(config.is_err());
-        match config {
-            Err(conf::ConfigError {
-                kind: conf::ConfigErrorKind::DuplicateItem(n),
-                ..
-            }) => {
-                assert_eq!(n, "os.uptime");
-            }
-            _ => panic!("Wrong Error!: {:?}", config),
-        }
     }
 
     #[test]
@@ -227,22 +184,10 @@ mod tests {
         input.path = "acpi"
         "#;
         let mut config = conf::load(&mut data.as_bytes()).unwrap();
-        let xdg_default_dir = match xdg::BaseDirectories::with_prefix("antikoerper")
-            .unwrap()
-            .create_data_directory(PathBuf::new())
-        {
-            Ok(s) => s,
-            Err(e) => {
-                println!("Error: {}", e);
-                return;
-            }
-        };
         match config.output.pop().unwrap() {
-            OutputKind::File { fo } => assert_eq!(
-                fo.base_path, xdg_default_dir,
-                "Expected {:?} to be {:?}",
-                fo.base_path, xdg_default_dir
-            ),
+            conf::OutputKind::File { base_path, .. } => {
+                assert_eq!(base_path, PathBuf::from("/var/log/antikoerper"))
+            }
             _ => {
                 println!("Error: wrong OutputKind");
             }

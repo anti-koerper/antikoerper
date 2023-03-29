@@ -1,0 +1,14 @@
+[general]
+
+[[output]]
+type = "file"
+always_write_raw = true
+base_path = "/tmp/antikoerper"
+
+[[items]]
+key = "workstation.os.load"
+interval = 10
+input.type = "file"
+input.path = "/proc/loadavg"
+digest.type = "regex"
+digest.regex = '(?P<load1m>\d+\.\d\d)\s(?P<load5m>\d+\.\d\d)\s(?P<load15m>\d+\.\d\d)'
