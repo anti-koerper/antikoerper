@@ -64,7 +64,7 @@ impl From<OutputKind> for Output {
                         influxdb::Client::new(url.clone(), database.clone())
                             .with_auth(username, password)
                     })
-                    .unwrap_or(influxdb::Client::new(url.clone(), database.clone()));
+                    .unwrap_or_else(|| influxdb::Client::new(url, database));
                 Output::InfluxDB(InfluxDBOutput {
                     use_raw_as_fallback,
                     always_write_raw,
@@ -84,7 +84,7 @@ pub struct FileOutput {
 impl FileOutput {
     async fn open_file(&self, key: &str) -> Result<File> {
         let mut path = self.base_path.clone();
-        path.push(key.replace("/", "_"));
+        path.push(key.replace('/', "_"));
         OpenOptions::new()
             .write(true)
             .append(true)
@@ -95,18 +95,18 @@ impl FileOutput {
     }
     async fn write_raw_value(&self, key: &str, value: &str, time: &Duration) -> Result<()> {
         let mut file = self.open_file(key).await?;
-        file.write(format!("{} {}\n", time.as_secs(), value).as_bytes())
+        file.write_all(format!("{} {}\n", time.as_secs(), value).as_bytes())
             .await?;
         Ok(())
     }
     async fn write_value(&self, key: &str, value: f64, time: &Duration) -> Result<()> {
         let mut file = self.open_file(key).await?;
-        file.write(format!("{} {}\n", time.as_secs(), value).as_bytes())
+        file.write_all(format!("{} {}\n", time.as_secs(), value).as_bytes())
             .await?;
         Ok(())
     }
     async fn write_values(&self, values: &HashMap<String, f64>, time: &Duration) -> Result<()> {
-        for (key, value) in values.into_iter() {
+        for (key, value) in values.iter() {
             self.write_value(key, *value, time).await?;
         }
         Ok(())

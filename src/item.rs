@@ -24,7 +24,7 @@ pub struct Item {
 }
 
 impl Item {
-    pub async fn start(self: Self, shell: String, sender: broadcast::Sender<ItemResult>) {
+    pub async fn start(self, shell: String, sender: broadcast::Sender<ItemResult>) {
         debug!("item {}: starting loop", self.key);
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(self.interval));
         loop {
@@ -80,7 +80,7 @@ impl ItemKind {
                 Ok(buffer)
             }
             ItemKind::Command { path, args } => {
-                run_cmd_capture_output(&path, args.as_slice(), env).await
+                run_cmd_capture_output(path, args.as_slice(), env).await
             }
             ItemKind::Shell { script } => {
                 run_cmd_capture_output(
@@ -242,7 +242,7 @@ impl DigestKind {
                                 Some("TB") => 1024f64.powi(4),
                                 _ => 1f64,
                             };
-                            value = value * value_factor;
+                            value *= value_factor;
                             values.insert(format!("{}.{}", itemkey, label), value);
                             for extra in ["warn", "crit", "min", "max"] {
                                 capture
@@ -289,10 +289,7 @@ mod tests {
         let check_load = r"LOAD OK - load average: 0.31, 0.37, 0.29|load1=0.310;10.000;15.000;0; load5=0.370;5.000;6.000;0; load15=0.290;3.000;4.000;0;";
         assert!(output_rx.is_match(check_load));
         let captures = output_rx.captures(check_load).unwrap();
-        assert_eq!(
-            captures.name("status").and_then(|s| Some(s.as_str())),
-            Some("OK")
-        );
+        assert_eq!(captures.name("status").map(|s| s.as_str()), Some("OK"));
         assert!(captures.name("performance").is_some());
         let perf = captures.name("performance").unwrap().as_str();
         assert_eq!(

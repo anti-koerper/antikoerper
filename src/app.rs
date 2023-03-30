@@ -51,11 +51,7 @@ impl From<Config> for App {
         App {
             general: config.general,
             items: config.items,
-            outputs: config
-                .output
-                .into_iter()
-                .map(|ok| Output::from(ok))
-                .collect(),
+            outputs: config.output.into_iter().map(Output::from).collect(),
         }
     }
 }
