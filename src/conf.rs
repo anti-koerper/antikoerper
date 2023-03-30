@@ -94,9 +94,9 @@ pub fn load(r: &mut dyn Read) -> Result<Config> {
         .map(|x| x.key.clone())
         .sorted()
         .tuple_windows::<(_, _)>()
-        .filter_map(|x| if x.0 == x.1 { Some(x.0.clone()) } else { None })
+        .filter_map(|x| if x.0 == x.1 { Some(x.0) } else { None })
         .collect::<Vec<_>>();
-    if duplicates.len() > 0 {
+    if !duplicates.is_empty() {
         bail!(
             "Configuration contained duplicate keys {}!",
             duplicates.join(", ")
@@ -110,7 +110,7 @@ pub fn load(r: &mut dyn Read) -> Result<Config> {
         .map(|item| item.key.clone())
         .collect::<Vec<_>>();
 
-    if interval_too_small.len() > 0 {
+    if !interval_too_small.is_empty() {
         bail!(
             "Interval of following items was not bigger than 0: {}",
             interval_too_small.join(", ")

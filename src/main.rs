@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
-use env_logger;
 use log::{error, info};
 
 mod app;
@@ -31,7 +30,7 @@ async fn main() -> Result<()> {
 
     let config_path = cli
         .config
-        .unwrap_or(PathBuf::from("/etc/antikoerper/config.toml"));
+        .unwrap_or_else(|| PathBuf::from("/etc/antikoerper/config.toml"));
 
     if cli.daemonize {
         let mut child = std::process::Command::new(
