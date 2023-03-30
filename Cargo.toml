@@ -4,7 +4,7 @@ authors = [
   "Mario Krehl <mario-krehl@gmx.de>"
 ]
 name = "antikoerper"
-version = "0.2.0"
+version = "0.3.0"
 license = "GPL-3.0"
 edition = "2021"
 homepage = "https://github.com/anti-koerper/antikoerper"
